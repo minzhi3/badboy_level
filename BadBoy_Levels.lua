@@ -88,7 +88,7 @@ badboy:SetScript("OnEvent", function(_, evt, msg)
 
 		local num = GetNumFriends() --get total friends
 		for i = 1, num do
-			local player, level = GetFriendInfo(i)
+			local player, level, class, loc = GetFriendInfo(i)
 			--sometimes a friend will return nil, I have no idea why, so force another update
 			if not player then
 				ShowFriends()
@@ -103,6 +103,11 @@ badboy:SetScript("OnEvent", function(_, evt, msg)
 						--lower than level 2, or a level defined by the user = bad,
 						--or lower than 58 and class is a Death Knight,
 						--so whisper the bad player what level they must be to whisper us
+						if BadBoyLog then 
+							local event="CHAT_MSG_WHISPER";
+							local msg=string.format("%s, 等级%d  %s, %s",player,level,class,loc);
+							BadBoyLog("Level", event, player, msg) 
+						end
 						SendChatMessage(whisp:format(filterTable[player]), "WHISPER", nil, player)
 						for _, v in pairs(maybe[player]) do
 							for _, p in pairs(v) do
@@ -143,7 +148,9 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", function(...)
 	local f, _, _, player, _, _, _, flag, _, _, _, _, id, guid = ...
 	local trimmedPlayer = Ambiguate(player, "none")
 	--don't filter if good, GM, guild member, or x-server
-	if good[trimmedPlayer] or trimmedPlayer:find("%-") or UnitIsInMyGuild(trimmedPlayer) then return end
+	
+	local checkrealm = trimmedPlayer:find("%-回音山") or trimmedPlayer:find("%-遗忘海岸") or trimmedPlayer:find("%-神圣之歌")
+	if good[trimmedPlayer] or (not checkrealm and trimmedPlayer:find("%-")) or UnitIsInMyGuild(trimmedPlayer) then return end
 	if flag == "GM" or flag == "DEV" then return end
 
 	--RealID support, don't scan people that whisper us via their character instead of RealID
@@ -159,7 +166,6 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", function(...)
 			end
 		end
 	end
-
 	if not addMsg then -- On-demand hook for chat filtering
 		addMsg = ChatFrame1.AddMessage
 		ChatFrame1.AddMessage = hookFunc
